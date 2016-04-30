@@ -9,7 +9,8 @@ We can decide to define the sorting function with a ``weak" type, like $sort\ :\
 \begin{lstlisting}
 data isSorted : {T:Type} -> (Order T) -> (List T) -> Type where
     NilIsSorted : (Tord : Order T) -> isSorted Tord []
-    SingletonIsSorted : (Tord : Order T) -> (x:T) -> isSorted Tord [x]
+    SingletonIsSorted : (Tord : Order T) -> (x:T) 
+                         -> isSorted Tord [x]
     ConsSorted : {Tord : Order T} -> (h1:T) -> (h2:T) -> (t:List T) 
                  -> (isSorted Tord (h2::t)) -> (h1 $\leq$ h2) 
                  -> (isSorted Tord (h1::(h2::t)))
@@ -27,5 +28,5 @@ More precisely, we :
 	\item We discuss possible directions for making dependently typed programming languages more adapted to the testing of specifications (section~\ref{sect:Conclusion}).
 \end{itemize}
 
-We use Idris, a dependently typed programming language, but all the ideas that we present here can be applied to any proof assistant based on type theory. The running example that we use in this paper can be found online at \url{https://github.com/FranckS/}.
+We use Idris, a dependently typed programming language, but all the ideas that we present here can be applied to any proof assistant based on type theory. The running example that we use in this paper can be found online at \url{https://github.com/FranckS/ProofsAndTests}
 
