@@ -1,0 +1,454 @@
+\documentclass[french]{beamer}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{amsmath, amssymb}
+
+\usepackage{babel}
+
+\usepackage{listings} 
+
+\lstset{
+  basicstyle=\ttfamily,
+  columns=fullflexible,
+  keepspaces=true,
+  mathescape
+}
+
+%CHOIX DU THEME et/ou DE SA COULEUR
+% => essayer différents thèmes (en décommantant une des trois lignes suivantes)
+%\usetheme{PaloAlto}
+%\usetheme{Madrid}
+\usetheme{Copenhagen}
+
+% => il est possible, pour un thème donné, de modifier seulement la couleur
+%\usecolortheme{crane}
+\usecolortheme{seahorse}
+
+%useoutertheme[left]{sidebar}
+
+
+%Pour le TITLEPAGE
+\title{Automatic predicate testing in formal certification}
+\subtitle{You've only proven what you've said, not what you meant !}
+\author[Franck Slama]{Franck Slama}
+\date{5th July 2016}
+\institute[]{University of St Andrews - Scotland - United Kingdom}
+
+
+\begin{document}
+
+\begin{frame}
+	\titlepage
+\end{frame}
+
+%\begin{frame}{On peut mettre un titre : Sommaire}
+%	\tableofcontents
+%\end{frame}
+
+
+\section{Formal certification and proofs assistants}
+\begin{frame}{Proofs assistants}
+\setbeamertemplate{enumerate items}[default]
+	\begin{itemize}
+		\item Proof assistants
+		\item Coq, Agda, Idris, B-Toolkit...
+		\item Based on higher-order logic (CoC, UTT) or Hoare logic
+		\item Goal (dreamed) : removing all bugs from software by formally proving their correctness
+		\item Goal (more realistic) : adding some confidence about our software by reasoning about them
+		\pause \item Question 1 : how much should we trust these proofs ?
+		\pause \item Question 2 : How could we value more these proofs that we've struggle to get ?
+		\pause \item In this talk, I'll use Idris, a dependently-typed programming language
+	\end{itemize}
+\end{frame}
+
+
+\begin{frame}{Code, logical formulae and proofs}
+
+	In proofs assistants based on higher-order logic :
+	\begin{itemize}
+		\item (Purely) functional code to reason about
+		\item Logical formulae, made of \textbf{predicates}
+		\item Proofs of logical formulae
+	\end{itemize}
+
+	All three are expressed within the same language
+
+\end {frame}
+
+
+\begin{frame}[fragile]{Predicates}
+	\begin{itemize}
+		\item Takes an object as input (or many), and returns a proposition (=a type), that can hold or not : $P\ :\ A \rightarrow Type$
+		\item Can be defined inductively
+		
+	\end{itemize}		
+
+\begin{block}{Definition}
+
+	\begin{lstlisting}
+data isSorted : (Order T) -> (List T) -> Type where
+    NilIsSorted : (Tord : Order T) -> isSorted Tord []
+    SingletonIsSorted : (Tord : Order T) -> (x:T) 
+                         -> isSorted Tord [x]
+    ConsSorted : {Tord : Order T} -> (h1:T) -> (h2:T) 
+                  -> (t:List T) 
+                  -> (isSorted Tord (h2::t)) 
+                  -> (h1 $\leq$ h2)
+                  -> (isSorted Tord (h1::(h2::t))) 
+      
+	\end{lstlisting}
+	
+\end{block}
+
+\end{frame}
+
+
+
+\begin{frame}[fragile]{Certification of a sorting function}
+
+\begin{lstlisting}
+sort : {Order T} $\rightarrow$ List T $\rightarrow$ List T  
+sort [] = []
+sort (h::t) = insert h (sort t)
+\end{lstlisting}
+
+Correctness of sort :
+\begin{alertblock}{Lemma}
+	\begin{lstlisting}
+	$sort\_correct : \forall (T:Type)\ \forall (Tord:Order T)\ \forall (l:List T),$
+            $isSorted\ Tord\ (sort\ Tord\ l)$
+      
+	\end{lstlisting}
+\end{alertblock}
+
+\end{frame}
+
+
+
+\section{The problem of adequacy}
+\begin{frame}[fragile]{What if the predicate was wrong ?}
+
+\begin{block}{Correct third constructor of isSorted}
+
+	\begin{lstlisting}
+    ConsSorted : {Tord : Order T} $\rightarrow$ (h1:T) $\rightarrow$ (h2:T) 
+       $\rightarrow$ (t:List T) $\rightarrow$ (isSorted Tord (h2::t)) 
+       $\rightarrow$ (h1 $\leq$ h2) $\rightarrow$ (isSorted Tord (h1::(h2::t))) 
+      
+	\end{lstlisting}
+	
+\end{block}
+
+
+\begin{alertblock}{Incorrect third constructor of isSorted}
+
+	\begin{lstlisting}
+    ConsSorted : {Tord : Order T} $\rightarrow$ (h1:T) $\rightarrow$ (h2:T) 
+       $\rightarrow$ (t:List T) $\rightarrow$ (isSorted Tord (h2::t)) 
+       $\rightarrow$ (h1 $\leq$ h1) $\rightarrow$ (isSorted Tord (h1::(h2::t))) 
+      
+	\end{lstlisting}
+	
+\end{alertblock}
+
+\end{frame}
+
+
+
+\begin{frame}[fragile]{What if the function is under-specified ?}
+
+The "correctness" lemma :
+
+	\begin{lstlisting}
+	$sort\_correct : \forall (T:Type)\ \forall (Tord:Order T)\ \forall (l:List\ T),$
+            $isSorted\ Tord\ (sort\ Tord\ l)$
+      
+	\end{lstlisting}
+	
+Should be in fact :
+	
+	\begin{lstlisting}
+	$sort\_correct : \forall (T:Type)\ \forall (Tord:Order T)\ \forall (l:List\ T),$
+              $isSorted\ Tord\ (sort\ Tord\ l)$
+            $\land\ isBijection\ l\ (sort\ Tord\ l)$
+      
+	\end{lstlisting}
+
+
+\end{frame}
+
+
+\begin{frame}{The problem of adequacy}
+
+	\begin{itemize}
+
+\item We use to have to trust code 
+
+\item Now we have to trust predicate and logical specifications
+
+\item But why should we trust more these predicates than the code that we've first refused to trust blindly ?
+
+\item How could we gain confidence in these logical definitions ?
+
+	\end{itemize}
+
+\end{frame}
+
+
+\begin{frame}[fragile]{Multiple predicates}
+
+How could we gain confidence in these logical definitions ?
+
+\begin{enumerate}
+\item With multiple predicates, by proving their equivalence
+\end{enumerate}
+
+Another predicate isSorted' that expresses the same notion with a different point of view
+
+	\begin{block}{Equivalence between the two notions}
+
+		\begin{lstlisting}
+    	$\forall\ (l:List\ T),\ isSorted\ lOrd\ l\ \iff\ isSorted'\ lOrd\ l$
+      
+		\end{lstlisting}
+	
+	\end{block}
+
+
+\end{frame}
+
+
+
+\begin{frame}[fragile]{Testing the predicate itself (tests by proofs)}
+
+\begin{enumerate}
+\setcounter{enumi}{1}
+\item By testing the predicate itself on some terms :
+\end{enumerate}		
+		
+	\begin{block}{Test on the list [3, 5, 7]}		
+		
+		\begin{lstlisting}
+isSorted_test1 : isSorted natIsOrdered [3, 5, 7]
+isSorted_test1 = 
+  let p1 : (3 <= 5) = try (leqDec natIsOrdered 3 5) in
+  let p2 : (5 <= 7) = try (leqDec natIsOrdered 5 7) in
+    ConsSorted 3 5 [7] 
+      (ConsSorted 5 7 [] (SingletonIsSorted _ 7) p2) p1
+		\end{lstlisting}
+		
+	\end{block}
+
+\end{frame}
+
+
+
+\begin{frame}[fragile]{Letting the machine find the proof for us (1/2)}
+
+\begin{lstlisting}
+decideIsSorted : (Tord : Order T) -> (l:List T) 
+                 -> Dec(isSorted Tord l)
+decideIsSorted Tord [] = Yes (NilIsSorted Tord)
+decideIsSorted Tord [x] = Yes (SingletonIsSorted Tord x)
+decideIsSorted Tord (h1::(h2::t)) 
+  with (lowerEqDec Tord h1 h2)
+  | (Yes h1_lower_h2) with (decideIsSorted Tord (h2::t))
+      | (Yes h2_tail_sorted) = Yes 
+      		(ConsSorted h1 h2 t h2_tail_sorted h1_lower_h2) 
+      | (No h2_tail_not_sorted) = No [...]
+  | (No h1_not_lower_h2) = No [...]
+\end{lstlisting}
+
+\end{frame}
+
+
+
+\begin{frame}[fragile]{Letting the machine find the proof for us (2/2)}
+
+Now, in order to do tests by proofs, we can simply run the decision procedure
+
+	\begin{block}{New test on the list [3, 5, 7], done automatically}
+
+\begin{lstlisting}
+isSorted_test1' : Dec (isSorted natIsOrdered [3,5,7])
+isSorted_test1' = decideIsSorted natIsOrdered [3,5,7] 
+\end{lstlisting}
+
+	\end{block}
+
+And if we evaluate $isSorted\_test1'$, the system will answer $Yes$ and a proof of $isSorted\ [3,\ 5,\ 7]$, which means that the predicate has passed this test
+
+\end{frame}
+
+
+
+\section{Automatic generation of terms}
+\begin{frame}[fragile]{Automatic generation of terms (1/4)}
+
+		- Idea : taking a different point of view for talking about sorted lists
+		
+	\begin{block}{Generating sorted lists}	
+		$generateSortedLists : (T:Type)\ \rightarrow\ (recEnu:RecEnum\ T) \rightarrow\ (Tord : Order\ T) \rightarrow\ (n:Nat) \rightarrow Stream\ (List\ T)$.
+		
+	\end{block}	
+	
+	- $generateSortedLists$ produces an infinite stream of sorted lists of size $n$	
+		
+\end{frame}
+
+
+
+\begin{frame}[fragile]{Automatic generation of terms (2/4)}
+
+Example : $T = \{A,\ B,\ C\}$ with $A\ < B\ < C$	
+		
+Unfolding a few times the result of generateSortedLists :
+
+
+\begin{lstlisting}
+Let's evaluate $testGenerator\ 8\ 4$:
+
+Just [[A, A, A, A], [A, A, A, B], [A, A, A, C], 
+      [A, A, B, B], [A, A, B, C], [A, A, C, C], 
+      [A, B, B, B], [A, B, B, C]] 
+      : Maybe (Vect 8 (List T))
+\end{lstlisting}	
+
+\end{frame}
+
+
+\begin{frame}[fragile]{Automatic generation of terms (3/4)}
+
+Checking that the predicate $isSorted$ and the generator of lists agree on a finite portion :
+
+	\begin{block}{Automatically testing the predicate on $m$ elements}
+
+\begin{lstlisting}
+testSorted : (m:Nat) -> (n:Nat) -> Vect m Bool
+testSorted m n = 
+  let x = generateSortedList T TRecEnu TOrdered n in
+    let y = Smap 
+       (\l => let res = decideIsSorted TisOrdered l in
+			          case res of
+			          Yes _ => True
+			          No _ => False) x in
+  unfold_n_times_with_padding y m True
+\end{lstlisting}
+
+	\end{block}
+
+\end{frame}
+
+
+
+
+
+\begin{frame}[fragile]{Automatic generation of terms (4/4)}
+
+Let's evaluate $testSorted\ 8\ 4$ :
+
+\begin{lstlisting}
+[True, True, True, True, True, True, True, True]
+$:\ Vect\ 8\ Bool$
+\end{lstlisting}
+
+
+\begin{itemize}
+
+\item The predicate agrees with the generator on this finite portion
+
+\item The bigger the portion is, the greater the guarantee is
+
+\end{itemize}
+
+
+\end{frame}
+
+
+
+\section{Making proof assistants more adapted to predicate testing}
+\begin{frame}{Making proof assistants more adapted to predicate testing (1/2)}
+
+		\begin{itemize}
+
+\item The goal is not to reproduce what has been done on this simple example for all the predicates we will encounter \\
+$\rightarrow$ the machinery that has been developped is extremely specific (predicate decidable, type $T$ recursively enumerable) \\
+$\rightarrow$ \textbf{We need to make our proofs assistants more adapted to predicate testing}
+
+
+\end{itemize}
+
+\end{frame}
+
+
+\begin{frame}[fragile]{Making proof assistants more adapted to predicate testing (2/2)}
+
+
+Two possible directions :
+
+\begin{enumerate}
+\item Equipping proof assistants with many robust and generic concepts (like being sorted) once and for all
+
+\item Adding execution engine of specification : \\
+$\rightarrow$ letting the machine generate automatically proofs of a predicate\\
+$\rightarrow$ guided by the user (finding proof is undecidable in the very general case in first-order logic and higher) \\
+$\rightarrow$ in order to check which terms make the predicate hold and which don't 
+
+\end{enumerate}
+
+
+
+\end{frame}
+
+
+
+\begin{frame}{Conclusions}
+
+	\begin{itemize}
+	
+	\item Question 1 : how much should we trust these proofs ? \\
+	\pause \textbf{It depends on the complexity of the logical specification}. When the specification is really complicated, not so much without having tested the spec. Also, not really good when the spec is too close to the implementation (and this happens often in functional programming!)
+	
+	\item Question 2 : How could we value more these proofs that we've struggle to get ? \\
+	\pause By equipping proof assistants with execution engines	that would enable to test formal specifications
+		
+	\end{itemize}
+
+	\textbf{Our proofs aren't perfect guarantees because our logical specifications can be wrong. And for real-world applications, they are often as complicated as the code}
+
+\end{frame}
+
+
+
+
+
+
+
+
+
+
+%\begin{frame}
+%	Un \textbf<2,3>{texte} en gras. 
+%	\visible<3>{Un texte visible sur la 3\ieme{} couche}
+%\end{frame}
+%
+%\begin{frame}{Titre (facultatif)} 
+%\framesubtitle{Sous titre (facultatif aussi)}
+%	\begin{block}{Remarque}
+%	Un bloc
+%	\end{block}
+%	
+%	\begin{alertblock}{Proposition}
+%	Un bloc alerte
+%	\end{alertblock}
+%	
+%	\begin{exampleblock}<2>{Exemple}
+%	Un bloc exemple qui est visible sur la 2\ieme{} couche : $f(x)=2x$.
+%	\end{exampleblock}
+%\end{frame}
+
+
+
+\end{document}
